@@ -16,3 +16,7 @@
 # Temporary files
 *.tmp
 *~
+
+# Installer packages
+*.pkg
+*.dmg
