@@ -1,0 +1,60 @@
+---
+title: "Preliminary_Analysis"
+format: html
+editor: visual
+---
+
+### summary stats
+
+```{r}
+data <- read.csv("dataset.csv")
+summary(data)
+```
+
+### Plotting a few variables
+
+```{r}
+# energy and dancebility
+library("ggplot2")
+# Set seed bc data is massive
+set.seed(123) 
+
+# Taking a 1000 random samples
+data_1000 <- data[sample(nrow(data), size = min(1000, nrow(data))), ]
+
+ggplot(data = data_1000, aes(x = energy, y = danceability)) +
+  geom_point()
+```
+
+```{r}
+# Tempo vs danceability
+library("ggplot2")
+# Set seed bc data is massive
+set.seed(123) 
+
+# Taking a 1000 random samples
+data_1000 <- data[sample(nrow(data), size = min(1000, nrow(data))), ]
+
+ggplot(data = data_1000, aes(x = tempo, y = danceability)) +
+  geom_point()
+```
+
+```{r}
+# Visualizing the box-plot of average danceability by track_genre
+
+# keep top 10 genres to avoid overcrowding
+top_genres <- names(sort(table(data$track_genre), decreasing = TRUE))[1:10]
+plot_data <- subset(datax, track_genre %in% top_genres & !is.na(track_genre) & !is.na(danceability))
+plot_data$track_genre <- factor(plot_data$track_genre, levels = top_genres)
+
+ggplot(plot_data, aes(x = track_genre, y = danceability)) +
+  geom_boxplot() +
+  stat_summary(fun = mean, geom = "point", color = "red", size = 2) +
+  labs(x = "Track genre", y = "Danceability", title = "Danceability distribution by track genre (top 10 genres)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+unique(data$track_genre)
+```

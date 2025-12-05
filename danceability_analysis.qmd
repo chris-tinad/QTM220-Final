@@ -1,0 +1,428 @@
+---
+title: "Predicting Song Danceability: A Regression Analysis"
+author: "QTM 220 Final Project"
+format: html
+editor: visual
+---
+
+## Introduction
+
+This analysis explores what factors predict song danceability using a dataset of 114,000 Spotify tracks across 114 different genres. Danceability is a continuous variable ranging from 0 to 1, describing how suitable a track is for dancing based on musical elements like tempo, rhythm stability, beat strength, and overall regularity.
+
+We will address the following research questions:
+
+1.  **Simple Linear Regression**: Does tempo predict danceability?
+2.  **Multiple Linear Regression**: What combination of audio features (energy, valence, tempo, loudness) best predicts danceability?
+3.  **Categorical Predictors**: Do certain genres produce more danceable music than others?
+4.  **Genre-Specific Analysis**: Do "dance" genre songs have different danceability predictors than other genres?
+
+```{r setup, message=FALSE, warning=FALSE}
+# Load required packages
+library(tidyverse)
+library(broom)
+library(knitr)
+
+# Load data
+music <- read_csv("dataset.csv", show_col_types = FALSE)
+
+# Quick look at the data
+glimpse(music)
+```
+
+## Exploratory Data Analysis
+
+```{r eda-summary}
+# Summary statistics for danceability
+summary(music$danceability)
+
+# Distribution of danceability
+ggplot(music, aes(x = danceability)) +
+  geom_histogram(bins = 50, fill = "steelblue", color = "white") +
+  labs(title = "Distribution of Danceability",
+       x = "Danceability",
+       y = "Count") +
+  theme_minimal()
+```
+
+### Danceability by Genre
+
+```{r genre-comparison}
+# Average danceability by genre
+genre_means <- music %>%
+  group_by(track_genre) %>%
+  summarise(
+    mean_danceability = mean(danceability),
+    n = n()
+  ) %>%
+  arrange(desc(mean_danceability))
+
+# Top 10 most danceable genres
+kable(head(genre_means, 10), 
+      caption = "Top 10 Most Danceable Genres",
+      digits = 3)
+
+# Top 10 least danceable genres
+kable(tail(genre_means, 10), 
+      caption = "Top 10 Least Danceable Genres",
+      digits = 3)
+
+# Visualize top and bottom genres
+genre_extreme <- bind_rows(
+  head(genre_means, 10) %>% mutate(category = "Most Danceable"),
+  tail(genre_means, 10) %>% mutate(category = "Least Danceable")
+)
+
+ggplot(genre_extreme, aes(x = reorder(track_genre, mean_danceability), 
+                           y = mean_danceability, fill = category)) +
+  geom_col() +
+  coord_flip() +
+  labs(title = "Extreme Danceability by Genre",
+       x = "Genre",
+       y = "Mean Danceability",
+       fill = "") +
+  theme_minimal() +
+  scale_fill_manual(values = c("Most Danceable" = "darkgreen", 
+                                 "Least Danceable" = "darkred"))
+```
+
+### Correlations
+
+```{r correlations}
+# Select numeric variables for correlation
+numeric_vars <- music %>%
+  select(danceability, tempo, energy, valence, acousticness, 
+         loudness, speechiness, instrumentalness, liveness)
+
+# Correlation with danceability
+cor_with_dance <- cor(numeric_vars, use = "complete.obs")[,"danceability"]
+cor_with_dance <- sort(cor_with_dance, decreasing = TRUE)
+
+kable(data.frame(
+  Variable = names(cor_with_dance),
+  Correlation = cor_with_dance
+), digits = 3, caption = "Correlations with Danceability")
+
+# Scatter plots of key relationships
+par(mfrow = c(2, 3))
+plot(music$tempo, music$danceability, main = "Tempo vs Danceability",
+     xlab = "Tempo", ylab = "Danceability", pch = 16, col = rgb(0, 0, 1, 0.1))
+abline(lm(danceability ~ tempo, data = music), col = "red", lwd = 2)
+
+plot(music$energy, music$danceability, main = "Energy vs Danceability",
+     xlab = "Energy", ylab = "Danceability", pch = 16, col = rgb(0, 0, 1, 0.1))
+abline(lm(danceability ~ energy, data = music), col = "red", lwd = 2)
+
+plot(music$valence, music$danceability, main = "Valence vs Danceability",
+     xlab = "Valence", ylab = "Danceability", pch = 16, col = rgb(0, 0, 1, 0.1))
+abline(lm(danceability ~ valence, data = music), col = "red", lwd = 2)
+
+plot(music$acousticness, music$danceability, main = "Acousticness vs Danceability",
+     xlab = "Acousticness", ylab = "Danceability", pch = 16, col = rgb(0, 0, 1, 0.1))
+abline(lm(danceability ~ acousticness, data = music), col = "red", lwd = 2)
+
+plot(music$loudness, music$danceability, main = "Loudness vs Danceability",
+     xlab = "Loudness", ylab = "Danceability", pch = 16, col = rgb(0, 0, 1, 0.1))
+abline(lm(danceability ~ loudness, data = music), col = "red", lwd = 2)
+
+plot(music$speechiness, music$danceability, main = "Speechiness vs Danceability",
+     xlab = "Speechiness", ylab = "Danceability", pch = 16, col = rgb(0, 0, 1, 0.1))
+abline(lm(danceability ~ speechiness, data = music), col = "red", lwd = 2)
+
+par(mfrow = c(1, 1))
+```
+
+## Question 1: Simple Linear Regression - Does Tempo Predict Danceability?
+
+```{r simple-regression}
+# Fit simple linear model
+model1 <- lm(danceability ~ tempo, data = music)
+summary(model1)
+
+# Create a tidy table
+tidy(model1) %>% kable(digits = 4, caption = "Simple Linear Regression: Danceability ~ Tempo")
+
+# Visualization
+ggplot(music, aes(x = tempo, y = danceability)) +
+  geom_point(alpha = 0.1, color = "steelblue") +
+  geom_smooth(method = "lm", color = "red", se = TRUE) +
+  labs(title = "Relationship between Tempo and Danceability",
+       x = "Tempo (BPM)",
+       y = "Danceability") +
+  theme_minimal()
+
+# Model diagnostics
+par(mfrow = c(2, 2))
+plot(model1)
+par(mfrow = c(1, 1))
+```
+
+**Interpretation**: The relationship between tempo and danceability is `r ifelse(coef(model1)[2] > 0, "positive", "negative")` with a coefficient of `r round(coef(model1)[2], 5)`. The R² is `r round(summary(model1)$r.squared, 4)`, meaning tempo explains only about `r round(summary(model1)$r.squared * 100, 2)`% of the variation in danceability. This suggests tempo alone is not a strong predictor.
+
+## Question 2: Multiple Linear Regression
+
+```{r multiple-regression}
+# Fit multiple regression model
+model2 <- lm(danceability ~ energy + valence + tempo + loudness + speechiness + acousticness, 
+             data = music)
+summary(model2)
+
+# Tidy output
+tidy(model2) %>% kable(digits = 4, caption = "Multiple Regression: Danceability Predictors")
+
+# Model comparison
+glance(model1) %>% 
+  bind_rows(glance(model2)) %>%
+  mutate(model = c("Model 1: Tempo only", "Model 2: Multiple predictors")) %>%
+  select(model, r.squared, adj.r.squared, AIC, BIC) %>%
+  kable(digits = 4, caption = "Model Comparison")
+```
+
+**Interpretation**: The multiple regression model has an R² of `r round(summary(model2)$r.squared, 4)`, explaining `r round(summary(model2)$r.squared * 100, 2)`% of variance in danceability. This is a substantial improvement over the simple model. The most important predictors are:
+
+-   **Valence**: `r round(coef(model2)["valence"], 4)` (positive relationship)
+-   **Loudness**: `r round(coef(model2)["loudness"], 4)`
+-   **Acousticness**: `r round(coef(model2)["acousticness"], 4)` (negative relationship)
+
+## Question 3: Genre Differences (ANOVA)
+
+```{r genre-anova}
+# ANOVA to test if genres differ in danceability
+model3 <- lm(danceability ~ track_genre, data = music)
+anova_results <- anova(model3)
+print(anova_results)
+
+# Effect size
+eta_squared <- anova_results$`Sum Sq`[1] / sum(anova_results$`Sum Sq`)
+cat("\nEta-squared (effect size):", round(eta_squared, 4))
+
+# Boxplot of danceability by selected genres
+selected_genres <- c("hip-hop", "reggaeton", "classical", "opera", 
+                     "sleep", "rock", "pop", "electronic")
+
+music %>%
+  filter(track_genre %in% selected_genres) %>%
+  ggplot(aes(x = reorder(track_genre, danceability), y = danceability, fill = track_genre)) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(title = "Danceability Distribution by Selected Genres",
+       x = "Genre",
+       y = "Danceability") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+**Interpretation**: There are statistically significant differences in danceability across genres (F = `r round(anova_results$'F value'[1], 2)`, p \< 0.001). Genre explains approximately `r round(eta_squared * 100, 2)`% of the variance in danceability.
+
+## Question 4: Genre-Specific Analysis - Dance vs. Non-Dance Genres
+
+```{r genre-specific}
+# Create dance genre category
+dance_genres <- c("dance", "dancehall", "edm", "house", "techno", 
+                  "detroit-techno", "chicago-house", "minimal-techno")
+
+music <- music %>%
+  mutate(is_dance_genre = ifelse(track_genre %in% dance_genres, "Dance", "Other"))
+
+# Compare means
+music %>%
+  group_by(is_dance_genre) %>%
+  summarise(
+    mean_danceability = mean(danceability),
+    sd_danceability = sd(danceability),
+    n = n()
+  ) %>%
+  kable(digits = 3, caption = "Danceability: Dance vs Other Genres")
+
+# T-test
+t_test_result <- t.test(danceability ~ is_dance_genre, data = music)
+print(t_test_result)
+
+# Separate regression models for dance vs non-dance
+model_dance <- lm(danceability ~ energy + valence + tempo + loudness, 
+                  data = music %>% filter(is_dance_genre == "Dance"))
+
+model_other <- lm(danceability ~ energy + valence + tempo + loudness, 
+                  data = music %>% filter(is_dance_genre == "Other"))
+
+# Compare coefficients
+comparison <- bind_rows(
+  tidy(model_dance) %>% mutate(group = "Dance Genres"),
+  tidy(model_other) %>% mutate(group = "Other Genres")
+) %>%
+  select(group, term, estimate, p.value)
+
+kable(comparison, digits = 4, caption = "Regression Coefficients: Dance vs Other Genres")
+
+# Visualize coefficient differences
+comparison %>%
+  filter(term != "(Intercept)") %>%
+  ggplot(aes(x = term, y = estimate, fill = group)) +
+  geom_col(position = "dodge") +
+  labs(title = "Predictor Coefficients: Dance vs Other Genres",
+       x = "Predictor",
+       y = "Coefficient Estimate",
+       fill = "Genre Category") +
+  theme_minimal() +
+  coord_flip()
+
+# Model fit comparison
+bind_rows(
+  glance(model_dance) %>% mutate(group = "Dance Genres"),
+  glance(model_other) %>% mutate(group = "Other Genres")
+) %>%
+  select(group, r.squared, adj.r.squared, AIC) %>%
+  kable(digits = 4, caption = "Model Fit: Dance vs Other Genres")
+```
+
+**Interpretation**: Dance genres have significantly higher danceability (mean difference = `r round(t_test_result$estimate[1] - t_test_result$estimate[2], 3)`, p \< 0.001). However, the predictors of danceability differ between dance and non-dance genres. For dance genres, the model explains `r round(summary(model_dance)$r.squared * 100, 2)`% of variance, while for other genres it explains `r round(summary(model_other)$r.squared * 100, 2)`%. This suggests that what makes a song danceable may depend on the genre context.
+
+## Data Quality Check: Duplicate Songs Analysis
+
+Before finalizing our conclusions, we should examine whether there are duplicate songs in the dataset that might be inflating our sample size or biasing our results.
+
+```{r duplicates-analysis}
+# Check for duplicates based on track_name and artists
+music <- music %>%
+  mutate(song_id = paste(track_name, artists, sep = " - "))
+
+# Count duplicates
+duplicate_summary <- music %>%
+  group_by(song_id) %>%
+  summarise(
+    n_occurrences = n(),
+    track_name = first(track_name),
+    artists = first(artists),
+    genres = paste(unique(track_genre), collapse = ", ")
+  ) %>%
+  arrange(desc(n_occurrences))
+
+# Summary statistics
+total_songs <- nrow(music)
+unique_songs <- n_distinct(music$song_id)
+duplicated_songs <- sum(duplicate_summary$n_occurrences > 1)
+total_duplicates <- sum(duplicate_summary$n_occurrences[duplicate_summary$n_occurrences > 1])
+
+cat("Total observations:", total_songs, "\n")
+cat("Unique songs:", unique_songs, "\n")
+cat("Songs that appear multiple times:", duplicated_songs, "\n")
+cat("Total duplicate observations:", total_duplicates - duplicated_songs, "\n")
+cat("Percentage of duplicates:", round((total_duplicates - duplicated_songs) / total_songs * 100, 2), "%\n")
+
+# Show most duplicated songs
+kable(head(duplicate_summary %>% filter(n_occurrences > 1), 15),
+      caption = "Most Frequently Duplicated Songs",
+      digits = 0)
+
+# Distribution of duplication
+ggplot(duplicate_summary %>% filter(n_occurrences > 1), 
+       aes(x = n_occurrences)) +
+  geom_histogram(binwidth = 1, fill = "coral", color = "white") +
+  labs(title = "Distribution of Song Duplications",
+       x = "Number of Times Song Appears",
+       y = "Count of Songs") +
+  theme_minimal()
+```
+
+### Analysis with Duplicates Removed
+
+Now let's re-run our key analyses with only unique songs to see if our conclusions change.
+
+```{r deduplicated-analysis}
+# Create deduplicated dataset - keep first occurrence of each song
+music_unique <- music %>%
+  distinct(song_id, .keep_all = TRUE)
+
+cat("Original dataset size:", nrow(music), "\n")
+cat("Deduplicated dataset size:", nrow(music_unique), "\n")
+cat("Reduction:", nrow(music) - nrow(music_unique), "observations\n")
+
+# Re-run simple linear regression
+model1_unique <- lm(danceability ~ tempo, data = music_unique)
+
+# Re-run multiple regression
+model2_unique <- lm(danceability ~ energy + valence + tempo + loudness + speechiness + acousticness, 
+                    data = music_unique)
+
+# Re-run genre ANOVA
+model3_unique <- lm(danceability ~ track_genre, data = music_unique)
+anova_results_unique <- anova(model3_unique)
+eta_squared_unique <- anova_results_unique$`Sum Sq`[1] / sum(anova_results_unique$`Sum Sq`)
+
+# Re-run dance vs other analysis
+music_unique <- music_unique %>%
+  mutate(is_dance_genre = ifelse(track_genre %in% dance_genres, "Dance", "Other"))
+
+model_dance_unique <- lm(danceability ~ energy + valence + tempo + loudness, 
+                         data = music_unique %>% filter(is_dance_genre == "Dance"))
+
+model_other_unique <- lm(danceability ~ energy + valence + tempo + loudness, 
+                         data = music_unique %>% filter(is_dance_genre == "Other"))
+
+# Comparison table
+comparison_table <- data.frame(
+  Analysis = c("Simple Regression (Tempo)", "Simple Regression (Tempo)", 
+               "Multiple Regression", "Multiple Regression",
+               "Genre ANOVA (Eta²)", "Genre ANOVA (Eta²)",
+               "Dance Genres Model", "Dance Genres Model",
+               "Other Genres Model", "Other Genres Model"),
+  Dataset = rep(c("With Duplicates", "Deduplicated"), 5),
+  R_squared = c(
+    summary(model1)$r.squared, summary(model1_unique)$r.squared,
+    summary(model2)$r.squared, summary(model2_unique)$r.squared,
+    eta_squared, eta_squared_unique,
+    summary(model_dance)$r.squared, summary(model_dance_unique)$r.squared,
+    summary(model_other)$r.squared, summary(model_other_unique)$r.squared
+  )
+)
+
+kable(comparison_table, digits = 4, 
+      caption = "Model Performance: Original vs Deduplicated Data")
+
+# Coefficient comparison for multiple regression
+coef_comparison <- bind_rows(
+  tidy(model2) %>% mutate(dataset = "With Duplicates"),
+  tidy(model2_unique) %>% mutate(dataset = "Deduplicated")
+) %>%
+  select(dataset, term, estimate, std.error, p.value)
+
+kable(coef_comparison, digits = 4,
+      caption = "Multiple Regression Coefficients: Original vs Deduplicated")
+
+# Visualize coefficient differences
+coef_comparison %>%
+  filter(term != "(Intercept)") %>%
+  ggplot(aes(x = term, y = estimate, fill = dataset)) +
+  geom_col(position = "dodge") +
+  labs(title = "Coefficient Comparison: Original vs Deduplicated Data",
+       x = "Predictor",
+       y = "Coefficient Estimate",
+       fill = "Dataset") +
+  theme_minimal() +
+  coord_flip() +
+  scale_fill_manual(values = c("With Duplicates" = "steelblue", 
+                                 "Deduplicated" = "darkgreen"))
+```
+
+**Interpretation**: After removing `r nrow(music) - nrow(music_unique)` duplicate observations, our sample size decreased from `r nrow(music)` to `r nrow(music_unique)` unique songs. The key findings:
+
+-   **Model performance remained stable**: R² values changed minimally across all models
+-   **Coefficient estimates are similar**: The direction and magnitude of relationships are consistent
+-   **Statistical significance preserved**: All main effects remain significant
+-   **Conclusion validity**: The presence of duplicates did not substantially bias our results, suggesting our conclusions are robust
+
+## Conclusions
+
+1.  **Tempo alone is a weak predictor** of danceability (R² ≈ `r round(summary(model1)$r.squared, 3)`), suggesting the relationship is more complex.
+
+2.  **Multiple predictors substantially improve prediction**: Valence (musical positivity), loudness, and acousticness are stronger predictors than tempo. The full model explains about `r round(summary(model2)$r.squared * 100, 1)`% of variance.
+
+3.  **Genre matters significantly**: Some genres (hip-hop, reggaeton, chicago-house) are inherently more danceable than others (sleep, grindcore, opera).
+
+4.  **Different genres have different danceability drivers**: The factors that predict danceability in dance-oriented genres differ from those in other genres, suggesting genre-specific models may be more appropriate for prediction.
+
+## Future Directions
+
+-   Investigate non-linear relationships (e.g., quadratic tempo effects)
+-   Explore interaction terms (e.g., energy × genre)
+-   Consider additional categorical predictors like time signature and mode
+-   Examine whether explicit content affects danceability differently across genres
