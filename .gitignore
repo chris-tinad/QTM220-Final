@@ -1,0 +1,18 @@
+# R history files
+.Rhistory
+.Rapp.history
+
+# RStudio files
+.RData
+.Rproj.user/
+
+# Quarto render outputs (can be regenerated)
+*_files/
+*.html
+
+# Mac system files
+.DS_Store
+
+# Temporary files
+*.tmp
+*~
