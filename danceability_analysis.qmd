@@ -1,13 +1,13 @@
 ---
 title: "Predicting Song Danceability"
-author: "Alix Morales, others"
+author: "Alix Morales, Christina Dai, Lola Pawar, Stan Xu, Charles Chen "
 format: html
 editor: visual
 ---
 
 ## Introduction
 
-Danceable songs are not only popular but can be quite successful tracks placed on dancing and upbeat playlists. For this reason it may be an important characteristics for artists to consider when making tracks. Our analysis explores what factors predict song danceability using a dataset of 114,000 Spotify tracks across 114 different genres. Danceability is a continuous variable ranging from 0 to 1, describing how suitable a track is for dancing based on musical elements like tempo, rhythm stability, beat strength, and overall regularity.
+Danceable songs are not only popular but often achieve significant success among listeners due to their upbeat nature and frequent use in curated playlists. For this reason, we analyze how Spotify quantifies user data and predicts what users are likely to enjoy by recommending different types of songs based on their listening history, with the broader goal of better understanding how music streaming algorithms operate and what types of variables Spotify itself prioritizes. Our analysis explores the factors that predict song danceability using a dataset of 114,000 Spotify tracks across 114 different genres. Danceability is a continuous variable ranging from 0 to 1, describing how suitable a track is for dancing based on musical elements such as tempo, rhythm stability, beat strength, and overall regularity.
 
 We address the following research questions:
 
