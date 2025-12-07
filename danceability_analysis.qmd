@@ -11,6 +11,8 @@ Danceable songs are not only popular but often achieve significant success among
 
 We address the following research questions:
 
+Our research questions generally focus on the exploration of predictors of danceability since we wanted to understand why Spotify would include this as a metric for their algorithm.
+
 1.  **Simple Linear Regression**: Does song tempo predict danceability?
 2.  **Multiple Linear Regression**: What combination of predictive features (energy, valence, tempo, etc.) best predicts danceability?
 3.  **Categorical Predictors**: Do certain genres produce more danceable music than others?
