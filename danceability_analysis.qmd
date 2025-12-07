@@ -11,13 +11,26 @@ Danceable songs are not only popular but often achieve significant success among
 
 We address the following research questions:
 
-Our research questions generally focus on the exploration of predictors of danceability since we wanted to understand why Spotify would include this as a metric for their algorithm.
+Our research questions generally focus on the exploration of the predictors for danceability since we wanted to understand why Spotify would include this as a metric for their algorithm.
+
+**Phase 1: Is danceability an "interaction variable" for Spotify's algorithm? Possible predictors for danceability?**
 
 1.  **Simple Linear Regression**: Does song tempo predict danceability?
 2.  **Multiple Linear Regression**: What combination of predictive features (energy, valence, tempo, etc.) best predicts danceability?
-3.  **Categorical Predictors**: Do certain genres produce more danceable music than others?
+
+**\[FUTURE DIRECTIONS\]**
+
+**Phase 2: Why might Spotify include danceability as a predictor in general?**
+
+Possible Answers **(Hypothesis)**:
+
+-   Curated playlists (for a dance class, study playlist, etc.)
+
+-   
+
+1.  **Categorical Predictors**: Genre specific danceability produce more danceable music than others?
     1.  Sub-Question: Is there a difference in danceability between explicit tracks and clean tracks?
-4.  **Genre-Specific Analysis**: Do "dance" genre songs have different danceability predictors than other genres?
+2.  **Genre-Specific Analysis**: Do "dance" genre songs have different danceability predictors than other genres?
 
 ```{r setup, message=FALSE, warning=FALSE}
 pacman::p_load("tidyverse", "broom", "knitr", "leaps")
